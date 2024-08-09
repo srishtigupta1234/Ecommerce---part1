@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card</title>
+    <style>
+         h1{
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        #subtotal{
+            text-align: end;
+        }
+        #container{
+          margin:auto;
+          width:400px;
+          display:grid;
+          grid-template-columns: repeat(1,400px);
+          gap:30px;
+        }
+        #container>div{
+          border: 1px solid black;
+        }
+        h2,h1,h3,h5{
+          text-align: center;
+        }
+        button{
+           margin:0px 46% 10px;
+        }
+        img{
+          width: 100%;
+        }
+        input{
+            margin:0px 20% 10px;
+            width:60%
+        }
+        
+        
+    </style>
+</head>
+<body>
+    <h1>Card</h1>
+    <div>
+        <label for="sortName">Sort by Name:</label>
+        <button id="sortNameAsc">A-Z</button>
+        <button id="sortNameDesc">Z-A</button>
+
+        <label for="sortPrice">Sort by Price:</label>
+        <button id="sortPriceAsc">Low to High</button>
+        <button id="sortPriceDesc">High to Low</button>
+
+        <label for="filterCategory">Filter by Category:</label>
+        <select id="filterCategory">
+            <option value="All">All</option>
+            <option value="BrandA">BrandA</option>
+            <option value="BrandB">BrandB</option>
+            <option value="BrandC">BrandC</option>
+            <!-- Add more options based on available brands -->
+        </select>
+    </div>
+    <h2 id="subtotal">Subtotal: $0.00</h2>
+    <div id = "container">
+    </div>
+    
+</body>
+</html>
+<script>
+     var cartArr = JSON.parse(localStorage.getItem("cart"))
+     display(cartArr)
+   
+     // Event listeners for sorting and filtering
+    document.getElementById("sortNameAsc").addEventListener("click", function() {
+        sortByName("asc");
+    });
+
+    document.getElementById("sortNameDesc").addEventListener("click", function() {
+        sortByName("desc");
+    });
+
+    document.getElementById("sortPriceAsc").addEventListener("click", function() {
+        sortByPrice("asc");
+    });
+
+    document.getElementById("sortPriceDesc").addEventListener("click", function() {
+        sortByPrice("desc");
+    });
+
+    document.getElementById("filterCategory").addEventListener("change", function() {
+        filterByCategory(this.value);
+    });
+     
+     function display(cartArr){
+        document.querySelector("#container").innerHTML = ""; // Clear the container before adding new elements
+        updateSubtotal();
+
+        cartArr.forEach(function(el,index){
+            el.count = el.count || 1; // Initialize count if not present
+            el.total = el.price * el.count;
+            el.discountedTotal = el.total;
+
+        var box =  document.createElement("div")
+
+        var pic = document.createElement("img")
+        pic.setAttribute("src",el.image)
+
+        var name = document.createElement("h3")
+        name.innerText = el.name
+
+        var price = document.createElement("h5")
+        price.innerText =" $"+el.price
+
+        var b1 = document.createElement("button")
+        b1.innerText="-"
+        b1.addEventListener("click",function(){
+            decFun(el,counting,total)
+        })
+
+        var b2 = document.createElement("button")
+        b2.innerText="+"
+        b2.addEventListener("click",function(){
+            incFun(el,counting,total)
+        })
+
+        var counting = document.createElement("h1")
+        counting.innerText = el.count;
+
+        var disc = document.createElement("input");
+        disc.placeholder = "Apply Promo code";
+        disc.type = "text";
+
+        var applyDisc = document.createElement("button");
+        applyDisc.innerText = "Apply";
+        applyDisc.addEventListener("click", function(){
+             applyDiscount(el, disc.value, total);
+        });
+
+        var total = document.createElement("h2")
+        total.innerText = "$" + (el.price * el.count)
+    
+        var del = document.createElement("button")
+        del.innerText = "DELETE"
+        del.style.color = "red"
+        del.addEventListener("click",function(){
+            deleteItem(index)
+        })
+
+        box.append(pic,name,price,b1,counting,b2,disc,applyDisc,total,del)
+        document.querySelector("#container").append(box)
+    }) 
+    updateSubtotal();
+ }
+    function decFun(el, counting, total){
+        if (el.count > 1) {
+            el.count--;
+            counting.innerText = el.count;
+            total.innerText = "$" + (el.price * el.count);
+            updateLocalStorage();
+            updateSubtotal();
+        }
+    }
+
+    function incFun(el, counting, total){
+        el.count++;
+        counting.innerText = el.count;
+        total.innerText = "$" + (el.price * el.count);
+        updateLocalStorage();
+        updateSubtotal();
+    }
+
+    function deleteItem(index) {
+        
+        cartArr.splice(index, 1);
+        updateLocalStorage();
+        display(cartArr);
+        event.target.parentNode.remove()
+    }
+    
+    function applyDiscount(el, code, total) {
+        if (code === "masai30") {
+            var discountedTotal = el.total - (el.total * 30 / 100);
+            total.innerText = "$" + discountedTotal.toFixed(2);
+        } else {
+            alert("Wrong promo code entered!");
+            el.discountedTotal = el.total;
+        }
+        updateSubtotal();
+    }
+    function updateLocalStorage() {
+        localStorage.setItem("cart", JSON.stringify(cartArr));
+    }
+
+    function updateSubtotal() {
+        var subtotal = cartArr.reduce(function(acc, el) {
+            return acc + el.discountedTotal;
+        }, 0);
+        document.querySelector("#subtotal").innerText = "Subtotal: $" + subtotal.toFixed(2);
+    }
+     // Sorting by Name
+    function sortByName(order) {
+        cartArr.sort(function(a, b) {
+            if (order === "asc") {
+                return a.name.localeCompare(b.name);
+            } else {
+                return b.name.localeCompare(a.name);
+            }
+        });
+        display(cartArr);
+    }
+
+    // Sorting by Price
+    function sortByPrice(order) {
+        cartArr.sort(function(a, b) {
+            if (order === "asc") {
+                return a.price - b.price;
+            } else {
+                return b.price - a.price;
+            }
+        });
+        display(cartArr);
+    }
+
+    // Filtering by Category (Brand)
+    function filterByCategory(category) {
+        if (category === "All") {
+            display(cartArr); // Show all items if "All" is selected
+        } else {
+            var filteredArr = cartArr.filter(function(el) {
+                return el.category === category; // Assuming "category" is the property storing the brand or category
+            });
+            display(filteredArr);
+        }
+    }
+</script>
